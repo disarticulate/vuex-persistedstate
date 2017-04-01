@@ -38,9 +38,11 @@ const defaultStorage = (() => {
 export default function createPersistedState ({
   key = 'vuex',
   paths = [],
-  getState = (key, storage) => {
+  getState = (key, storage, cb) => {
     const value = storage.getItem(key)
-    return value && value !== 'undefined' ? JSON.parse(value) : undefined
+    var returnValue = value && value !== 'undefined' ? JSON.parse(value) : undefined
+    cb(returnValue);
+    return returnValue
   },
   setState = (key, state, storage) => storage.setItem(key, JSON.stringify(state)),
   reducer = defaultReducer,
@@ -49,13 +51,13 @@ export default function createPersistedState ({
   subscriber = store => handler => store.subscribe(handler)
 } = {}) {
   return store => {
-    const savedState = getState(key, storage)
-    if (typeof savedState === 'object') {
-      store.replaceState(
-        merge({}, store.state, savedState)
-      )
-    }
-
+    getState(key, storage, (savedState) => {
+      if (typeof savedState === 'object') {
+        store.replaceState(
+          merge({}, store.state, savedState)
+        );
+      }
+    });
     subscriber(store)((mutation, state) => {
       if (filter(mutation)) {
         setState(key, reducer(state, paths), storage)
